@@ -1,4 +1,4 @@
-var fs = require('fs');
+const fs = require('fs');
 
 var filePaths = [
   './reports/November Patreon Report.csv',
@@ -11,19 +11,19 @@ var filePaths = [
   './reports/PatronReportJune.csv'
 ];
 
-var files = filePaths.map(path => fs.readFileSync(path, 'utf8'));
+const files = filePaths.map(path => fs.readFileSync(path, 'utf8'));
 
-var dataByUser = {};
+let dataByUser = {};
 
 files.forEach((file, i) => {
-  var rows = file.split(/[\r\n]+/g).slice(2); // split by line breaks, slice to remove header rows
+  const rows = file.split(/[\r\n]+/g).slice(2); // split by line breaks, slice to remove header rows
 
   rows.forEach(row => {
     if (!row) { return; } // some rows are just blank lines
 
-    var rowData = row.split(/\,/g); // split by commas
+    const rowData = row.split(/\,/g); // split by commas
     if (rowData.length !== 4) { console.log(JSON.stringify(rowData)); throw new Error("Invalid row data!"); }
-    var [first, last, email, amount] = rowData;
+    const [first, last, email, amount] = rowData;
 
     if (isNaN(Number(amount))) { console.log(JSON.stringify(rowData)); throw new Error("Invalid pledge amount!"); }
 
@@ -39,23 +39,16 @@ files.forEach((file, i) => {
 });
 
 // sorting from highest to lowest to match the other CSVs
-var keysSortedByTotals = Object.keys(dataByUser).sort((a, b) => {
+const keysSortedByTotals = Object.keys(dataByUser).sort((a, b) => {
   return dataByUser[b].amount - dataByUser[a].amount;
 });
 
-// var CSVString = keysSortedByTotals.reduce((acc, key) => {
-//   var {first, last, email, amount, pledges} = dataByUser[key];
-//   acc += `${first},${last},${email},${amount/100}\n`;
-//   return acc;
-// }, `FirstName,LastName,Email,Pledge\n,,,\n`);
-
-var CSVStringWithMonths = keysSortedByTotals.reduce((acc, key) => {
+const CSVStringWithMonths = keysSortedByTotals.reduce((acc, key) => {
   var {first, last, email, amount, pledges} = dataByUser[key];
   acc += `${first},${last},${email},${amount/100},${pledges}\n`;
   return acc;
 }, `FirstName,LastName,Email,Pledge,Nov,Dec,Jan,Feb,Mar,Apr,May,June\n,,,,,,,,,,,\n`);
 
-// fs.writeFileSync("./totals.csv", CSVString);
 fs.writeFileSync("./totals.js.csv", CSVStringWithMonths);
 
 console.log("Success!");

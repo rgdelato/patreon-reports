@@ -26,7 +26,9 @@
   [row-str]
   (let [row-vec (string/split row-str #",")]
     (if (not= (count row-vec) 4)
-      (throw (js/Error. "Invalid row data!"))
+      (do
+        (println row-str)
+        (throw (js/Error. "Invalid row data!")))
       row-vec)))
 
 
@@ -35,7 +37,9 @@
   [s]
   (let [number (js/parseFloat s 10)]
     (if (js/isNaN number)
-      (throw (js/Error. "Invalid pledge amount!"))
+      (do
+        (println s)
+        (throw (js/Error. "Invalid pledge amount!")))
       number)))
 
 
@@ -79,7 +83,7 @@
        users))
 
 
-(defn users->csv [totals]
+(defn users+totals->csv [totals]
   (str "FirstName,LastName,Email,Pledge,Nov,Dec,Jan,Feb,Mar,Apr,May,June\n,,,,,,,,,,,\n"
        (string/join "\n"
         (map (fn [{:keys [first last email total pledges]}]
@@ -89,7 +93,7 @@
 
 (->> users+totals
      (sort-by :total >)
-     (users->csv)
+     (users+totals->csv)
      (write-file "./totals.cljs.csv"))
 
 
