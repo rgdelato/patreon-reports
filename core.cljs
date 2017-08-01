@@ -18,14 +18,12 @@
                  "./reports/PatronReportJune.csv"])
 
 
-(s/def ::email (s/and string? #(re-matches #"^.+@.+\..+$" %)))
-
-(s/def ::pledge (s/and string? #(not (js/isNaN (parse-float %)))))
-
 (s/def ::row (s/cat :first string?
                     :last string?
-                    :email ::email
-                    :pledge ::pledge))
+                    :email (s/and string?
+                                  #(re-matches #"^.+@.+\..+$" %))
+                    :pledge (s/and string?
+                                   #(not (js/isNaN (parse-float %))))))
 
 
 (defn row->map [row]
@@ -43,6 +41,7 @@
               (let [file (read-file file-path)
                     rows (drop 2 (string/split-lines file))] ;; split by line breaks and remove header rows
                 (map row->map rows))))))
+
 
 (def users
   "A list of all users with the shape {:first :last :email}"
@@ -75,9 +74,9 @@
 (defn users+totals->csv [totals]
   (str "FirstName,LastName,Email,Pledge,Nov,Dec,Jan,Feb,Mar,Apr,May,June\n,,,,,,,,,,,\n"
        (string/join "\n"
-        (map (fn [{:keys [first last email total pledges]}]
-               (string/join "," [first last email total (string/join "," (map #(if (zero? %) "" %) pledges))]))
-             totals))))
+         (map (fn [{:keys [first last email total pledges]}]
+                (string/join "," [first last email total (string/join "," (map #(if (zero? %) "" %) pledges))]))
+              totals))))
 
 
 (->> users+totals
