@@ -30,7 +30,7 @@
   (let [row-vec (string/split row #",") ;; split line by commas
         parsed-row (s/conform ::row row-vec)] ;; conform row string to map using the spec
     (if (= parsed-row ::s/invalid)
-      (throw (js/Error. "Invalid row data!"))
+      (throw (js/Error. (s/explain-data ::row row-vec)))
       (update parsed-row :pledge parse-float)))) ;; convert :pledge to float
 
 
