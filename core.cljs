@@ -1,14 +1,11 @@
 (ns patreon.core
-  (:require [clojure.string :as string]))
-            ; [clojure.pprint :refer [pprint]]))
+  (:require [clojure.string :as string]
+            [cljs.spec.alpha :as s]))
 
 (def node-fs (js/require "fs"))
-
-(defn read-file [path]
-  (.readFileSync node-fs path "utf-8"))
-
-(defn write-file [path text]
-  (.writeFileSync node-fs path text))
+(defn read-file [path] (.readFileSync node-fs path "utf-8"))
+(defn write-file [path text] (.writeFileSync node-fs path text))
+(defn parse-float [s] (js/parseFloat s 10))
 
 
 (def file-paths ["./reports/November Patreon Report.csv"
@@ -21,38 +18,31 @@
                  "./reports/PatronReportJune.csv"])
 
 
-(defn split-row
-  "Data check: Throws error if the row doesn't have the correct number of fields"
-  [row-str]
-  (let [row-vec (string/split row-str #",")]
-    (if (not= (count row-vec) 4)
-      (do
-        (println row-str)
-        (throw (js/Error. "Invalid row data!")))
-      row-vec)))
+(s/def ::email (s/and string? #(re-matches #"^.+@.+\..+$" %)))
+
+(s/def ::pledge (s/and string? #(not (js/isNaN (parse-float %)))))
+
+(s/def ::row (s/cat :first string?
+                    :last string?
+                    :email ::email
+                    :pledge ::pledge))
 
 
-(defn parse-float
-  "Data check: Throws error if string isn't a number"
-  [s]
-  (let [number (js/parseFloat s 10)]
-    (if (js/isNaN number)
-      (do
-        (println s)
-        (throw (js/Error. "Invalid pledge amount!")))
-      number)))
+(defn row->map [row]
+  (let [row-vec (string/split row #",") ;; split line by commas
+        parsed-row (s/conform ::row row-vec)] ;; conform row string to map using the spec
+    (if (= parsed-row ::s/invalid)
+      (throw (js/Error. "Invalid row data!"))
+      (update parsed-row :pledge parse-float)))) ;; convert :pledge to float
 
 
 (def data
   "A list of lists of pledges with the shape {:first :last :email :pledge}"
   (->> file-paths
-       (map read-file)
-       (map (fn [file]
-              (let [rows (drop 2 (string/split-lines file))] ;; split by line breaks and remove header rows
-                (->> rows
-                     (map #(zipmap [:first :last :email :pledge] (split-row %))) ;; convert row string to map
-                     (map #(update % :pledge parse-float)))))))) ;; convert :pledge to number
-
+       (map (fn [file-path]
+              (let [file (read-file file-path)
+                    rows (drop 2 (string/split-lines file))] ;; split by line breaks and remove header rows
+                (map row->map rows))))))
 
 (def users
   "A list of all users with the shape {:first :last :email}"
@@ -65,7 +55,7 @@
 
 
 (defn email->pledges
-  "Takes an email and returns a vector of pledge amounts (one for each month)"
+  "Takes an email and returns a list of pledge amounts (one for each month)"
   [email]
   (map (fn [file]
          (let [row (some #(when (= email (:email %)) %) file)] ;; find row by email
@@ -77,9 +67,8 @@
   "A list of all users with the shape {:first :last :email :pledges :total}"
   (map (fn [{:keys [email] :as user}]
          (let [pledges (email->pledges email)]
-           (-> user
-               (assoc :pledges pledges)
-               (assoc :total (apply + pledges)))))
+           (assoc user :pledges pledges
+                       :total (apply + pledges))))
        users))
 
 
