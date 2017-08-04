@@ -26,7 +26,9 @@
                                    #(not (js/isNaN (parse-float %))))))
 
 
-(defn row->map [row]
+(defn row->map
+  "Convert single-string row into a map with the shape {:first :last :email :pledge}"
+  [row]
   (let [row-vec (string/split row #",") ;; split line by commas
         parsed-row (s/conform ::row row-vec)] ;; conform row string to map using the spec
     (if (= parsed-row ::s/invalid)
@@ -44,13 +46,11 @@
 
 
 (def users
-  "A list of all users with the shape {:first :last :email}"
-  (->> (apply concat data) ;; get a flat list of all rows
-    (reduce
-      (fn [acc {:keys [email] :as row}]
-        (assoc acc email (select-keys row [:first :last :email]))) ;; key user data by email to dedupe users
-      {})
-    vals)) ;; then only return the vals
+  "A set of all users with the shape {:first :last :email}"
+  (let [rows (apply concat data)] ;; get a flat list of all rows
+    (into #{} ;; using a set to dedupe
+          (map #(select-keys % [:first :last :email])) ;; only get the data we want
+          rows)))
 
 
 (defn email->pledges
