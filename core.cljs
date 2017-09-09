@@ -1,10 +1,10 @@
 (ns patreon.core
   (:require [clojure.string :as string]
-            [cljs.spec.alpha :as s]))
+            [cljs.spec.alpha :as s]
+            ["fs" :as fs]))
 
-(def node-fs (js/require "fs"))
-(defn read-file [path] (.readFileSync node-fs path "utf-8"))
-(defn write-file [path text] (.writeFileSync node-fs path text))
+(defn read-file [path] (fs/readFileSync path "utf-8"))
+(defn write-file [path text] (fs/writeFileSync path text))
 (defn parse-float [s] (js/parseFloat s 10))
 
 
@@ -15,7 +15,10 @@
                  "./reports/March Patreon Report.csv"
                  "./reports/April Patreon Report.csv"
                  "./reports/May Patreon Report.csv"
-                 "./reports/PatronReportJune.csv"])
+                 "./reports/PatronReportJune.csv"
+                 "./reports/PatronReportJuly.csv"
+                 "./reports/PatronReportAugust.csv"
+                 "./reports/PatronReportSeptember.csv"])
 
 
 (s/def ::row (s/cat :first string?
@@ -72,7 +75,7 @@
 
 
 (defn users+totals->csv [totals]
-  (str "FirstName,LastName,Email,Pledge,Nov,Dec,Jan,Feb,Mar,Apr,May,June\n,,,,,,,,,,,\n"
+  (str "FirstName,LastName,Email,Pledge,Nov,Dec,Jan,Feb,Mar,Apr,May,June,July,Aug,Sept\n,,,,,,,,,,,\n"
        (string/join "\n"
          (map (fn [{:keys [first last email total pledges]}]
                 (string/join "," [first last email total (string/join "," (map #(if (zero? %) "" %) pledges))]))
@@ -82,7 +85,7 @@
 (->> users+totals
      (sort-by :total >)
      (users+totals->csv)
-     (write-file "./totals.cljs.csv"))
+     (write-file "./totals.sept.csv"))
 
 
 (println "Success!")
